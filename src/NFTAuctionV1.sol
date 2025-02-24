@@ -94,7 +94,7 @@ contract NFTAuctionV1 is Initializable{
         isStop = false;
     }
 
-    function multicall(bytes[] calldata _calldata) external {
+    function multicall(bytes[] calldata _calldata) external isPaused {
 
         for (uint256 i = 0; i < _calldata.length; i++) {
             (bool success, ) = address(this).delegatecall(_calldata[i]);
@@ -106,7 +106,7 @@ contract NFTAuctionV1 is Initializable{
         address _nftAddress,
         uint256 _tokenId,
         uint256 _minPrice
-    ) external payable nftOwner(_nftAddress, _tokenId, msg.sender) { // 경매 생성. 경매할 NFT가 경매 시작을 원하는 주소와 일치하는지 확인
+    ) external payable nftOwner(_nftAddress, _tokenId, msg.sender) isPaused { // 경매 생성. 경매할 NFT가 경매 시작을 원하는 주소와 일치하는지 확인
         require(_minPrice > 0, "Minimum Price 0 is not allowed");
         require(msg.value == listingFee, "Not matched listing fee");
 
@@ -127,7 +127,7 @@ contract NFTAuctionV1 is Initializable{
         address _nftAddress,
         uint256 _tokenId,
         address seller
-        ) external checkApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender){
+        ) external checkApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
         startTime = block.timestamp;
         emit Active(startTime, AuctionState.Active);
     }
@@ -136,12 +136,12 @@ contract NFTAuctionV1 is Initializable{
         address _nftAddress,
         uint256 _tokenId,
         address seller
-    ) external nftOwner(_nftAddress, _tokenId, seller) {
+    ) external nftOwner(_nftAddress, _tokenId, seller) isPaused {
         IERC721 nft = IERC721(_nftAddress);
         nft.approve(address(this), _tokenId);
     }
 
-    function finalizeAuction() external { // 경매 시간이 지나야만 호출 가능
+    function finalizeAuction() external isPaused { // 경매 시간이 지나야만 호출 가능
         require(block.timestamp >= startTime + 2 days, "Not yet");
         for (uint16 i = 0; i < bidders.length; i++) {
             if (currentBid == playerBid[bidders[i]]) { // 가장 높은 입찰자 선정
@@ -151,7 +151,7 @@ contract NFTAuctionV1 is Initializable{
         }
     }
 
-    function buyNFT(uint256 _tokenId) external { // 최고 입찰액을 불러 낙찰된 사람만 호출 가능
+    function buyNFT(uint256 _tokenId) external isPaused { // 최고 입찰액을 불러 낙찰된 사람만 호출 가능
         require(highestBidder == msg.sender, "not highestBidder");
         address _nftAddress = listings[_tokenId].nftAddress;
         IERC721 nft = IERC721(_nftAddress);
@@ -159,7 +159,7 @@ contract NFTAuctionV1 is Initializable{
         nft.transferFrom(address(this), msg.sender, tokenId);
     }
 
-    function bid(uint256 _tokenId) external payable { // 입찰
+    function bid(uint256 _tokenId) external payable isPaused { // 입찰
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid"); // 최소 금액 이상이어야 입찰 가능
         require(msg.value > currentBid, "Can't bid");
 
@@ -171,7 +171,7 @@ contract NFTAuctionV1 is Initializable{
         currentBid = msg.value;
     }
 
-    function withdraw(uint256 amount) external payable { // 입찰액에서 출금
+    function withdraw(uint256 amount) external payable isPaused { // 입찰액에서 출금
         require(playerBid[msg.sender] >= amount, "Insufficient amount");
         playerBid[msg.sender] -= amount;
         (bool success, ) = address(msg.sender).call{value: amount}("");
