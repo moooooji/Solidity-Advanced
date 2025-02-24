@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 contract NFTAuctionV1 {
 
-    enum AuctionState {Created, Active, Ended} // 경매 시작 전, 경매 중, 경매 끝으로 나뉨. 최소 인원(3)이 모여야 시작.
+    enum AuctionState {Created, Active, Ended}
 
     event Created(
         address indexed seller,
@@ -65,6 +65,7 @@ contract NFTAuctionV1 {
     uint256 public tokenId;
     uint256 public currentBid; // 현재 입찰액
     address public highestBidder;
+    bool private isStop;
 
     // function initialize() public initializer {
     //     __Ownable_init();
@@ -72,12 +73,21 @@ contract NFTAuctionV1 {
     //     __Pausable_init(); //
     // }
 
-    function pause() external {
-
+    modifier onlyAdmin() {
+        
     }
 
-    function unpause() external {
+    modifier isPaused() {
+        require(isStop, "Emergency Stop");
+        _;
+    }
 
+    function pause() external onlyAdmin {
+        isStop = true;
+    }
+
+    function unpause() external onlyAdmin {
+        isStop = false;
     }
 
     function multicall(bytes[] calldata _calldata) external {
