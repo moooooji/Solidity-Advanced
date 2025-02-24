@@ -77,7 +77,8 @@ contract NFTAuctionV1 is Initializable{
     }
 
     modifier onlyAdmin() {
-        
+        require(admin == msg.sender, "Not admin");
+        _;
     }
 
     modifier isPaused() {
