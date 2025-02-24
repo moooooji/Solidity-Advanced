@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract NFTAuctionV1 {
+
+contract NFTAuctionV1 is Initializable{
 
     enum AuctionState {Created, Active, Ended}
 
@@ -60,18 +62,19 @@ contract NFTAuctionV1 {
 
     address[] public bidders;
 
-    uint256 public listingFee = 0.0001 ether; // 나중에 초기화 함수에서 초기화 다시
+    uint256 public listingFee;
     uint256 public startTime;
     uint256 public tokenId;
     uint256 public currentBid; // 현재 입찰액
     address public highestBidder;
     bool private isStop;
+    address public admin;
 
-    // function initialize() public initializer {
-    //     __Ownable_init();
-    //     __UUPSUpgradeable_init();
-    //     __Pausable_init(); //
-    // }
+    function initialize() public initializer {
+        isStop = false;
+        listingFee = 0.001 ether;
+        admin = msg.sender;
+    }
 
     modifier onlyAdmin() {
         
