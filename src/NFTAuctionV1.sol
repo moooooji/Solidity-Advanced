@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
+
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "forge-std/console.sol";
 
 
 contract NFTAuctionV1 is Initializable{
@@ -122,17 +124,21 @@ contract NFTAuctionV1 is Initializable{
         address seller
         ) external checkApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
         startTime = block.timestamp;
+
         emit Active(startTime, AuctionState.Active);
     }
 
-    function approveNFT( // NFT approve
-        address _nftAddress,
-        uint256 _tokenId,
-        address seller
-    ) external nftOwner(_nftAddress, _tokenId, seller) isPaused {
-        IERC721 nft = IERC721(_nftAddress);
-        nft.approve(address(this), _tokenId);
-    }
+    // function approveNFT( // NFT approve
+    //     address _nftAddress,
+    //     uint256 _tokenId,
+    //     address seller
+    // ) external nftOwner(_nftAddress, _tokenId, seller) isPaused {
+
+    //     // require(seller == msg.sender, "Not owner");
+    //     IERC721 nft = IERC721(_nftAddress);
+    //     nft.approve(address(this), _tokenId);
+
+    // }
 
     function finalizeAuction(uint256 _tokenId) external isPaused { // 경매 시간이 지나야만 호출 가능
         require(block.timestamp >= startTime + 2 days, "Not yet");

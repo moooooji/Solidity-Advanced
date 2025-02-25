@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "forge-std/Test.sol";
 import "../src/NFTAuctionV1.sol";
 import "../src/TestNFT.sol";
+import "forge-std/console.sol";
 
 contract NFTAuctionTest is Test {
 
@@ -21,6 +22,8 @@ contract NFTAuctionTest is Test {
         seller = address(1);
         bidder = address(2);
 
+        tokenId = 1;
+
         auction = new NFTAuctionV1();
         nft = new TestNFT();
 
@@ -36,14 +39,19 @@ contract NFTAuctionTest is Test {
 
     }
 
-    function testCreateAution() public {
+    function testCreateAuction() public {
         vm.prank(seller); // msg.sender seller로 설정
-        auction.createAution{value: 0.001 ether}(address(nft), 1, 0.1 ether);
+        auction.createAution{value: 0.001 ether}(address(nft), tokenId, 0.1 ether);
     }
 
-    // function testStartAuction() public {
+    function testStartAuction() public {
+        vm.prank(seller);
+        nft.approve(address(auction), tokenId);
+        // auction.approveNFT(address(nft), tokenId, seller);
+        vm.prank(seller);
+        auction.startAuction(address(nft), tokenId, seller);
+    }
 
-    // }
     // function testApproveNFT() public {
 
     // }
