@@ -55,6 +55,7 @@ contract NFTAuctionV1 is Initializable{
         ) {
         IERC721 nft = IERC721(_nftAddress);
         require(nft.getApproved(_tokenId) == address(this), "Not approved");
+        _;
     }
 
     mapping(uint256 => Auction) public listings;

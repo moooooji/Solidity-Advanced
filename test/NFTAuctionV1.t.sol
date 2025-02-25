@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "forge-std/Test.sol";
+import "../src/NFTAuctionV1.sol";
 
 contract NFTAuctionTest is Test {
 
@@ -54,6 +56,7 @@ contract NFTAuctionTest is Test {
         ) {
         IERC721 nft = IERC721(_nftAddress);
         require(nft.getApproved(_tokenId) == address(this), "Not approved");
+        _;
     }
 
     mapping(uint256 => Auction) public listings;
@@ -70,6 +73,8 @@ contract NFTAuctionTest is Test {
     address public admin;
     
     function setUp() public {
+        NFTAuctionV1 auction = new NFTAuctionV1();
+        auction.initialize();
 
     }
 
