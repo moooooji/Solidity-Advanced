@@ -167,10 +167,10 @@ contract NFTAuctionV1 is Initializable{
         require(success, "withdraw failed!");
     }
 
-    function multicall(bytes[] calldata _calldata) external isPaused {
+    function multicall(bytes[] calldata _calldata) external payable isPaused {
         for (uint256 i = 0; i < _calldata.length; i++) {
             (bool success, ) = address(this).delegatecall(_calldata[i]);
-            require(success, "Failed");
+            require(success, "Delegatecall failed");
         }
     }
 }

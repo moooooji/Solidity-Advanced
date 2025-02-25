@@ -13,6 +13,8 @@ contract NFTAuctionTest is Test {
     address public bidder;
     uint256 public tokenId;
     address nft_address;
+    bytes[] public data;
+
 
     NFTAuctionV1 auction; 
     TestNFT nft;
@@ -80,8 +82,12 @@ contract NFTAuctionTest is Test {
     }
     
     
-    // function testMulticall() public {
+    function testMulticall() public {
+        vm.prank(bidder);
+        data.push(abi.encodeWithSignature("bid(uint256)", tokenId));
+        data.push(abi.encodeWithSignature("withdraw(uint256)", 1 ether));
 
-    // }
+        auction.multicall{value: 1 ether}(data);
+    }
     
 }
