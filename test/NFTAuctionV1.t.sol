@@ -4,105 +4,62 @@ pragma solidity ^0.8.22;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "forge-std/Test.sol";
 import "../src/NFTAuctionV1.sol";
+import "../src/TestNFT.sol";
 
 contract NFTAuctionTest is Test {
 
-    enum AuctionState {Created, Active, Ended}
-
-    event Created(
-        address indexed seller,
-        address indexed nftAddress,
-        uint256 indexed tokenId,
-        uint256 minPrice,
-        AuctionState state 
-    );
-
-    event Active(
-        uint256 startTime,
-        AuctionState state
-    );
-
-    event Ended(
-        address indexed buyer,
-        address indexed nftAddress,
-        uint256 indexed tokenId,
-        uint256 finalPrice,
-        AuctionState state
-    );
-
-    struct Auction {
-        address seller;
-        address nftAddress;
-        uint256 tokenId;
-        uint256 minPrice;
-        AuctionState state;
-    }
-
-    modifier nftOwner(
-        address _nftAddress,
-        uint256 _tokenId,
-        address seller
-    ) {
-        IERC721 nft = IERC721(_nftAddress);
-        address owner = nft.ownerOf(_tokenId);
-        require(seller == owner, "Should be owner");
-        _;
-    }
-
-    modifier checkApprove(
-        address _nftAddress, 
-        uint256 _tokenId,
-        address seller
-        ) {
-        IERC721 nft = IERC721(_nftAddress);
-        require(nft.getApproved(_tokenId) == address(this), "Not approved");
-        _;
-    }
-
-    mapping(uint256 => Auction) public listings;
-    mapping(address => uint256) public playerBid;
-
-    address[] public bidders;
-
-    uint256 public listingFee;
-    uint256 public startTime;
+    address public seller;
+    address public bidder;
     uint256 public tokenId;
-    uint256 public currentBid; // 현재 입찰액
-    address public highestBidder;
-    bool private isStop;
-    address public admin;
+    address nft_address;
+
+    NFTAuctionV1 auction; 
+    TestNFT nft;
     
     function setUp() public {
-        NFTAuctionV1 auction = new NFTAuctionV1();
+
+        seller = address(1);
+        bidder = address(2);
+
+        auction = new NFTAuctionV1();
+        nft = new TestNFT();
+
+
+        vm.prank(seller); // mint by seller
+        nft.mint(seller);
+
+        deal(address(this), 100 ether);
+        deal(seller, 100 ether);
+        deal(bidder, 100 ether);
+
         auction.initialize();
 
     }
 
-    function testInitialize() public {
-
-    }
     function testCreateAution() public {
-
+        vm.prank(seller); // msg.sender seller로 설정
+        auction.createAution{value: 0.001 ether}(address(nft), 1, 0.1 ether);
     }
-    function testStartAuction() public {
 
-    }
-    function testApproveNFT() public {
+    // function testStartAuction() public {
 
-    }
-    function testFinalizeAuction() public {
+    // }
+    // function testApproveNFT() public {
 
-    }
-    function testBuyNFT() public {
+    // }
+    // function testFinalizeAuction() public {
 
-    }
-    function testBid() public {
+    // }
+    // function testBuyNFT() public {
 
-    }
-    function testWithdraw() public {
+    // }
+    // function testBid() public {
 
-    }
-    function testMulticall() public {
+    // }
+    // function testWithdraw() public {
 
-    }
+    // }
+    // function testMulticall() public {
+
+    // }
 }

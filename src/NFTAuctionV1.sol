@@ -77,7 +77,7 @@ contract NFTAuctionV1 is Initializable{
     }
 
     modifier isPaused() {
-        require(isStop, "Emergency Stop");
+        require(!isStop, "Emergency Stop");
         _;
     }
 
