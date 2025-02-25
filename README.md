@@ -1,2 +1,3 @@
-## Solidity Advanced DEX Project
-test
+## Solidity Advanced NFT Auction Project
+
+Simple NFT Auction.
