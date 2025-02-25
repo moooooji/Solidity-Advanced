@@ -133,11 +133,13 @@ contract NFTAuctionV1 is Initializable{
         nft.approve(address(this), _tokenId);
     }
 
-    function finalizeAuction() external isPaused { // 경매 시간이 지나야만 호출 가능
+    function finalizeAuction(uint256 _tokenId) external isPaused { // 경매 시간이 지나야만 호출 가능
         require(block.timestamp >= startTime + 2 days, "Not yet");
         for (uint16 i = 0; i < bidders.length; i++) {
             if (currentBid == playerBid[bidders[i]]) { // 가장 높은 입찰자 선정
                 highestBidder = bidders[i];
+                address _nftAddress = listings[_tokenId].nftAddress;
+                emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
                 break;
             }
         }
