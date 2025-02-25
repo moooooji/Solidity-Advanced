@@ -62,16 +62,27 @@ contract NFTAuctionTest is Test {
         vm.prank(bidder);
         auction.withdraw(1 ether);
     }
+    function testFinalizeAuction() public {
+        vm.prank(bidder);
+        auction.bid{value: 1 ether}(tokenId);
+        skip(2 days);
+        auction.finalizeAuction(tokenId);
+    }
 
-    // function testBuyNFT() public {
-
-    // }
+    function testBuyNFT() public {
+        vm.prank(seller);
+        auction.createAution{value: 0.001 ether}(address(nft), tokenId, 0.1 ether);
+        vm.prank(bidder);
+        auction.bid{value: 1 ether}(tokenId);
+        skip(2 days);
+        auction.finalizeAuction(tokenId);
+        vm.prank(bidder);
+        auction.buyNFT(tokenId);
+    }
     
     
     // function testMulticall() public {
 
     // }
-    // function testFinalizeAuction() public {
-
-    // }
+    
 }

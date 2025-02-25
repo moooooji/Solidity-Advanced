@@ -157,7 +157,7 @@ contract NFTAuctionV1 is Initializable{
         address _nftAddress = listings[_tokenId].nftAddress;
         IERC721 nft = IERC721(_nftAddress);
 
-        nft.transferFrom(address(this), msg.sender, tokenId);
+        // nft.transferFrom(address(this), msg.sender, tokenId); approve 문제 해결이 안됨
     }
 
     function bid(uint256 _tokenId) external payable isPaused { // 입찰
