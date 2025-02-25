@@ -45,29 +45,33 @@ contract NFTAuctionTest is Test {
     }
 
     function testStartAuction() public {
-        vm.prank(seller);
+        vm.prank(seller); // 판매자가 직접 approve
         nft.approve(address(auction), tokenId);
         // auction.approveNFT(address(nft), tokenId, seller);
-        vm.prank(seller);
+        vm.prank(seller); // 경매 시작
         auction.startAuction(address(nft), tokenId, seller);
     }
+    function testBid() public {
+        vm.prank(bidder);
+        auction.bid{value: 1 ether}(tokenId);
+    }
 
-    // function testApproveNFT() public {
+    function testWithdraw() public {
+        vm.prank(bidder);
+        auction.bid{value: 1 ether}(tokenId);
+        vm.prank(bidder);
+        auction.withdraw(1 ether);
+    }
 
-    // }
-    // function testFinalizeAuction() public {
-
-    // }
     // function testBuyNFT() public {
 
     // }
-    // function testBid() public {
-
-    // }
-    // function testWithdraw() public {
-
-    // }
+    
+    
     // function testMulticall() public {
+
+    // }
+    // function testFinalizeAuction() public {
 
     // }
 }
