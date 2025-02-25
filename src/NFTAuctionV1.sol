@@ -70,12 +70,6 @@ contract NFTAuctionV1 is Initializable{
     bool private isStop;
     address public admin;
 
-    function initialize() public initializer {
-        isStop = false;
-        listingFee = 0.001 ether;
-        admin = msg.sender;
-    }
-
     modifier onlyAdmin() {
         require(admin == msg.sender, "Not admin");
         _;
@@ -94,12 +88,10 @@ contract NFTAuctionV1 is Initializable{
         isStop = false;
     }
 
-    function multicall(bytes[] calldata _calldata) external isPaused {
-
-        for (uint256 i = 0; i < _calldata.length; i++) {
-            (bool success, ) = address(this).delegatecall(_calldata[i]);
-            require(success, "Failed");
-        }
+    function initialize() public initializer {
+        isStop = false;
+        listingFee = 0.001 ether;
+        admin = msg.sender;
     }
 
     function createAution(
@@ -176,5 +168,12 @@ contract NFTAuctionV1 is Initializable{
         playerBid[msg.sender] -= amount;
         (bool success, ) = address(msg.sender).call{value: amount}("");
         require(success, "withdraw failed!");
+    }
+
+    function multicall(bytes[] calldata _calldata) external isPaused {
+        for (uint256 i = 0; i < _calldata.length; i++) {
+            (bool success, ) = address(this).delegatecall(_calldata[i]);
+            require(success, "Failed");
+        }
     }
 }
