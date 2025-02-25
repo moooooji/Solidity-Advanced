@@ -47,7 +47,6 @@ contract NFTAuctionTest is Test {
     function testStartAuction() public {
         vm.prank(seller); // 판매자가 직접 approve
         nft.approve(address(auction), tokenId);
-        // auction.approveNFT(address(nft), tokenId, seller);
         vm.prank(seller); // 경매 시작
         auction.startAuction(address(nft), tokenId, seller);
     }

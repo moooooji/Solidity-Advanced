@@ -128,18 +128,6 @@ contract NFTAuctionV1 is Initializable{
         emit Active(startTime, AuctionState.Active);
     }
 
-    // function approveNFT( // NFT approve
-    //     address _nftAddress,
-    //     uint256 _tokenId,
-    //     address seller
-    // ) external nftOwner(_nftAddress, _tokenId, seller) isPaused {
-
-    //     // require(seller == msg.sender, "Not owner");
-    //     IERC721 nft = IERC721(_nftAddress);
-    //     nft.approve(address(this), _tokenId);
-
-    // }
-
     function finalizeAuction(uint256 _tokenId) external isPaused { // 경매 시간이 지나야만 호출 가능
         require(block.timestamp >= startTime + 2 days, "Not yet");
         for (uint16 i = 0; i < bidders.length; i++) {
