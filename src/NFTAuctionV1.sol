@@ -127,6 +127,9 @@ contract NFTAuctionV1 is Initializable{
         address seller
         ) external checkApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
         startTime = block.timestamp;
+        bidders = []; // reset players
+        currentBid = 0; // reset currentBid
+        highestBidder = address(0);
         emit Active(startTime, AuctionState.Active);
     }
 
@@ -139,6 +142,8 @@ contract NFTAuctionV1 is Initializable{
             if (currentBid == playerBid[bidders[i]]) { // check winner
                 highestBidder = bidders[i];
                 address _nftAddress = listings[_tokenId].nftAddress;
+                IERC721 nft = IERC721(_nftAddress);
+                // nft.transferFrom(address(this), msg.sender, tokenId);
             } else {
                 tmpBalance = playerBid[bidders[i]];
                 (bool success, ) = bidders[i].call{value: tmpBalance}(""); // send ether
@@ -146,12 +151,6 @@ contract NFTAuctionV1 is Initializable{
             }
         }
         emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
-    }
-
-    function buyNFT(uint256 _tokenId) external isPaused { // buy NFT
-        require(highestBidder == msg.sender, "not highestBidder");
-        address _nftAddress = listings[_tokenId].nftAddress;
-        IERC721 nft = IERC721(_nftAddress);
     }
 
     function bid(uint256 _tokenId) external payable isPaused { // can bid

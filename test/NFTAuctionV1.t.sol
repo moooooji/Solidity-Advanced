@@ -99,29 +99,6 @@ contract NFTAuctionTest is Test {
         (bool result2, ) = address(auctionProxy).call(_data);
         require(result2, "failed");
     }
-
-    function testBuyNFT() public {
-        vm.prank(seller);
-        bytes memory _data;
-        _data = abi.encodeWithSignature("createAuction(address,uint256,uint256)", address(nft), tokenId, 0.1 ether);
-        (bool result1, ) = address(auctionProxy).call{value: 0.001 ether}(_data);
-        require(result1, "failed 1");
-
-        vm.prank(bidder);
-        _data = abi.encodeWithSignature("bid(uint256)", tokenId);
-        (bool result2, ) = address(auctionProxy).call{value: 1 ether}(_data);
-        require(result2, "failed 2");
-
-        skip(2 days);
-        _data = abi.encodeWithSignature("finalizeAuction(uint256)", tokenId);
-        (bool result3, ) = address(auctionProxy).call(_data);
-        require(result3, "failed 3");
-        
-        vm.prank(bidder);
-        _data = abi.encodeWithSignature("buyNFT(uint256)", tokenId);
-        (bool result4, ) = address(auctionProxy).call(_data);
-        require(result4, "failed 4");
-    }
     
     function testMulticall() public {
         bytes[] memory _calldata = new bytes[](2);
