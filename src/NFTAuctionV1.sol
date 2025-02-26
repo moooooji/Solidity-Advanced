@@ -132,14 +132,20 @@ contract NFTAuctionV1 is Initializable{
 
     function finalizeAuction(uint256 _tokenId) external isPaused { // finalize auction
         require(block.timestamp >= startTime + 2 days, "Not yet");
+        
+        uint256 tmpBalance;
+
         for (uint16 i = 0; i < bidders.length; i++) {
             if (currentBid == playerBid[bidders[i]]) { // check winner
                 highestBidder = bidders[i];
                 address _nftAddress = listings[_tokenId].nftAddress;
-                emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
-                break;
+            } else {
+                tmpBalance = playerBid[bidders[i]];
+                (bool success, ) = bidders[i].call{value: tmpBalance}(""); // send ether
+                require(success, "Failed send to player");
             }
         }
+        emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
     }
 
     function buyNFT(uint256 _tokenId) external isPaused { // buy NFT
@@ -152,10 +158,9 @@ contract NFTAuctionV1 is Initializable{
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid"); // more than minimum
         require(msg.value > currentBid, "Can't bid");
 
-        if (playerBid[msg.sender] == 0) { // 
-            bidders.push(msg.sender);
+        if (playerBid[msg.sender] == 0) { 
+            bidders.push(msg.sender);   // first bid, save player
         }
-
         playerBid[msg.sender] += msg.value;
         currentBid = msg.value;
     }
