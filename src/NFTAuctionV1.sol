@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC20.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "forge-std/console.sol";
 
 
-contract NFTAuctionV1 is Initializable{
+contract NFTAuctionV1 is Initializable, ERC721, ERC20 {
 
     enum AuctionState {Created, Active, Ended} // Auction State
 
@@ -63,9 +64,9 @@ contract NFTAuctionV1 is Initializable{
 
     mapping(uint256 => Auction) public listings;
     mapping(address => uint256) public playerBid;
+    mapping(address => uint256) public balances; // can pay ERC20
 
     address[] public bidders;
-
     uint256 public listingFee;
     uint256 public startTime;
     uint256 public tokenId;
@@ -96,6 +97,7 @@ contract NFTAuctionV1 is Initializable{
         isStop = false;
         listingFee = 0.001 ether;
         admin = msg.sender;
+        paymentToken = IERC20(_paymentToken); // ERC20 토큰 주소 설정
     }
 
     function createAuction(
@@ -167,10 +169,23 @@ contract NFTAuctionV1 is Initializable{
     function withdraw(uint256 amount) external payable isPaused {
         require(playerBid[msg.sender] >= amount, "Insufficient amount");
 
+        address tmp;
+
         playerBid[msg.sender] -= amount;
         (bool success, ) = address(msg.sender).call{value: amount}("");
-
         require(success, "withdraw failed!");
+
+            if (playerBid[msg.sender] == 0) {
+                for (uint16 i = 0; i < bidders.length; i++) { // delete player
+                    if (bidders[i] == msg.sender) {
+                        tmp = bidders[bidders.length - 1];
+                        bidders[i] = tmp;
+                        bidders[bidders.length - 1] = bidders[i];
+                        bidders.pop();
+                        break;
+                    }
+            }
+        }
     }
 
     function multicall(bytes[] calldata _calldata) external payable isPaused {
