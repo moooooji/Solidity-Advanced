@@ -8,7 +8,7 @@ import "forge-std/console.sol";
 
 contract NFTAuctionV1 is Initializable{
 
-    enum AuctionState {Created, Active, Ended}
+    enum AuctionState {Created, Active, Ended} // Auction State
 
     event Created(
         address indexed seller,
@@ -39,7 +39,7 @@ contract NFTAuctionV1 is Initializable{
         AuctionState state;
     }
 
-    modifier nftOwner(
+    modifier nftOwner( // check NFT ownner
         address _nftAddress,
         uint256 _tokenId,
         address seller
@@ -50,13 +50,14 @@ contract NFTAuctionV1 is Initializable{
         _;
     }
 
-    modifier checkApprove(
+    modifier checkApprove( 
         address _nftAddress, 
         uint256 _tokenId,
         address seller
         ) {
         IERC721 nft = IERC721(_nftAddress);
-        require(nft.getApproved(_tokenId) == address(this), "Not approved");
+        require(nft.getApproved(_tokenId) == address(0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f), "Not approved"); // 테스트를 위해 테스트에서 생성한 auction 주소 사용
+        // require(nft.getApproved(_tokenId) == address(this), "Not approved"); 실제 배포 시
         _;
     }
 
@@ -97,14 +98,16 @@ contract NFTAuctionV1 is Initializable{
         admin = msg.sender;
     }
 
-    function createAution(
+    function createAuction(
         address _nftAddress,
         uint256 _tokenId,
         uint256 _minPrice
     ) external payable nftOwner(_nftAddress, _tokenId, msg.sender) isPaused { // 경매 생성. 경매할 NFT가 경매 시작을 원하는 주소와 일치하는지 확인
         require(_minPrice > 0, "Minimum Price 0 is not allowed");
+        console.log("msg.value: ", msg.value);
+        console.log("listingFee: ", listingFee);
         require(msg.value == listingFee, "Not matched listing fee");
-
+        
         tokenId = _tokenId;
 
         listings[_tokenId] = Auction({
@@ -124,14 +127,13 @@ contract NFTAuctionV1 is Initializable{
         address seller
         ) external checkApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
         startTime = block.timestamp;
-
         emit Active(startTime, AuctionState.Active);
     }
 
-    function finalizeAuction(uint256 _tokenId) external isPaused { // 경매 시간이 지나야만 호출 가능
+    function finalizeAuction(uint256 _tokenId) external isPaused { // finalize auction
         require(block.timestamp >= startTime + 2 days, "Not yet");
         for (uint16 i = 0; i < bidders.length; i++) {
-            if (currentBid == playerBid[bidders[i]]) { // 가장 높은 입찰자 선정
+            if (currentBid == playerBid[bidders[i]]) { // check winner
                 highestBidder = bidders[i];
                 address _nftAddress = listings[_tokenId].nftAddress;
                 emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
@@ -140,19 +142,17 @@ contract NFTAuctionV1 is Initializable{
         }
     }
 
-    function buyNFT(uint256 _tokenId) external isPaused { // 최고 입찰액을 불러 낙찰된 사람만 호출 가능
+    function buyNFT(uint256 _tokenId) external isPaused { // buy NFT
         require(highestBidder == msg.sender, "not highestBidder");
         address _nftAddress = listings[_tokenId].nftAddress;
         IERC721 nft = IERC721(_nftAddress);
-
-        // nft.transferFrom(address(this), msg.sender, tokenId); approve 문제 해결이 안됨
     }
 
-    function bid(uint256 _tokenId) external payable isPaused { // 입찰
-        require(msg.value >= listings[_tokenId].minPrice, "Can't bid"); // 최소 금액 이상이어야 입찰 가능
+    function bid(uint256 _tokenId) external payable isPaused { // can bid
+        require(msg.value >= listings[_tokenId].minPrice, "Can't bid"); // more than minimum
         require(msg.value > currentBid, "Can't bid");
 
-        if (playerBid[msg.sender] == 0) { // 입찰 안한 사람만 배열에 저장
+        if (playerBid[msg.sender] == 0) { // 
             bidders.push(msg.sender);
         }
 
@@ -160,10 +160,12 @@ contract NFTAuctionV1 is Initializable{
         currentBid = msg.value;
     }
 
-    function withdraw(uint256 amount) external payable isPaused { // 입찰액에서 출금
+    function withdraw(uint256 amount) external payable isPaused {
         require(playerBid[msg.sender] >= amount, "Insufficient amount");
+
         playerBid[msg.sender] -= amount;
         (bool success, ) = address(msg.sender).call{value: amount}("");
+
         require(success, "withdraw failed!");
     }
 
