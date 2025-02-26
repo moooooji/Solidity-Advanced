@@ -155,35 +155,43 @@ contract NFTAuctionV1 is Initializable, ERC721, ERC20 {
         emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
     }
 
-    function bid(uint256 _tokenId) external payable isPaused { // can bid
+    function bid(uint256 _tokenId, bool useERC20) external payable isPaused { // can bid
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid"); // more than minimum
         require(msg.value > currentBid, "Can't bid");
 
         if (playerBid[msg.sender] == 0) { 
             bidders.push(msg.sender);   // first bid, save player
         }
-        playerBid[msg.sender] += msg.value;
+        if (!useERC20) {
+            playerBid[msg.sender] += msg.value;
+        } else{
+            balances[msg.sender] += msg.value;
+        }
         currentBid = msg.value;
     }
 
-    function withdraw(uint256 amount) external payable isPaused {
+    function withdraw(uint256 amount, bool useERC20) external payable isPaused {
         require(playerBid[msg.sender] >= amount, "Insufficient amount");
 
         address tmp;
 
-        playerBid[msg.sender] -= amount;
-        (bool success, ) = address(msg.sender).call{value: amount}("");
-        require(success, "withdraw failed!");
+        if (!useERC20) {
+            playerBid[msg.sender] -= amount;
+            (bool success, ) = address(msg.sender).call{value: amount}("");
+            require(success, "withdraw failed!");
+        } else {
 
-            if (playerBid[msg.sender] == 0) {
-                for (uint16 i = 0; i < bidders.length; i++) { // delete player
-                    if (bidders[i] == msg.sender) {
-                        tmp = bidders[bidders.length - 1];
-                        bidders[i] = tmp;
-                        bidders[bidders.length - 1] = bidders[i];
-                        bidders.pop();
-                        break;
-                    }
+        }
+        
+        if (playerBid[msg.sender] == 0) {
+            for (uint16 i = 0; i < bidders.length; i++) { // delete player
+                if (bidders[i] == msg.sender) {
+                    tmp = bidders[bidders.length - 1];
+                    bidders[i] = tmp;
+                    bidders[bidders.length - 1] = bidders[i];
+                    bidders.pop();
+                    break;
+                }
             }
         }
     }
