@@ -146,9 +146,8 @@ contract NFTAuctionV1 is Initializable {
         require(highestBidder != address(0), "No winner");
 
         if (msg.sender == highestBidder) {
-            totalBalance[msg.sender] -= currentBid;
-
             require(address(this).balance >= currentBid, "not enough balance");
+            totalBalance[msg.sender] -= currentBid;
             (bool success, ) = msg.sender.call{value: currentBid}("");
             require(success, "failed");
         }
