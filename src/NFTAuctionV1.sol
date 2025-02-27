@@ -64,6 +64,7 @@ contract NFTAuctionV1 is Initializable {
     mapping(uint256 => Auction) public listings;
     mapping(address => uint256) public playerBid;
     mapping(address => bool) public isBidder;
+    mapping(address => uint256[]) public bidHistory;
 
     address[] public bidders;
     uint256 public listingFee;
@@ -143,7 +144,16 @@ contract NFTAuctionV1 is Initializable {
         uint256 tmpBalance;
         address _nftAddress = listings[_tokenId].nftAddress;
         IERC721 nft = IERC721(_nftAddress);
-        // nft.transferFrom(address(this), msg.sender, tokenId); NFT 전송
+        if (msg.sender == highestBidder) {
+            for (uint16 i = 0; i < bidHistory[msg.sender].length; i++) {
+                if (bidHistory[msg.sender][i] == currentBid) {
+                    bidHistory[msg.sender][i] = 0;
+                }
+                (bool success, ) = msg.sender.call{value: bidHistory[msg.sender][i]}("");
+                require(success, "failed");
+            }
+            // nft.transferFrom(address(this), msg.sender, tokenId); NFT 전송
+        }
 
         emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
     }
@@ -157,12 +167,14 @@ contract NFTAuctionV1 is Initializable {
         }
 
         playerBid[msg.sender] += msg.value;
+        bidHistory[msg.sender].push(msg.value);
 
-        if (playerBid[msg.sender] > currentBid) {
-            currentBid = playerBid[msg.sender];
-            highestBidder = msg.sender;
-        }
-
+        for (uint16 i = 0; i < bidHistory[msg.sender].length; i++) { // bidHistory 순회하며 가장 큰 입찰액 선정
+            if (bidHistory[msg.sender][i] > currentBid) {
+                currentBid = bidHistory[msg.sender][i];
+                highestBidder = msg.sender;
+            }
+        } 
     }
 
     function withdraw(uint256 amount) external payable isPaused {
