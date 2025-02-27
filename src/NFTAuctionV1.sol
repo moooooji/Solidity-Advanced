@@ -8,7 +8,7 @@ import "forge-std/console.sol";
 
 contract NFTAuctionV1 is Initializable {
 
-    enum AuctionState {Created, Active, Ended} // Auction State
+    enum AuctionState {Created, Active, Ended} // 상태머신 구현 완료
 
     event Created(
         address indexed seller,
@@ -69,7 +69,6 @@ contract NFTAuctionV1 is Initializable {
     mapping(address => uint256[]) public playersBid;
 
 
-    address[] public bidders;
     uint256 public listingFee;
     uint256 public startTime;
     uint256 public tokenId;
@@ -77,7 +76,7 @@ contract NFTAuctionV1 is Initializable {
     address public highestBidder;
     bool private isStop;
     address public admin;
-    bool public isMulticallExecution = false;
+    bool public isMulticallExecution;
     
 
     modifier onlyAdmin() {
@@ -98,7 +97,7 @@ contract NFTAuctionV1 is Initializable {
         isStop = false;
     }
 
-    function initialize() public initializer {
+    function initialize() public initializer { // 초기 배포자를 admin으로 생성. 프록시 패턴 구현 완료.
         isStop = false;
         listingFee = 0.001 ether;
         admin = msg.sender;
@@ -135,13 +134,12 @@ contract NFTAuctionV1 is Initializable {
         address seller
         ) external checkApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
         startTime = block.timestamp;
-        delete bidders; // reset players
         currentBid = 0; // reset currentBid
         highestBidder = address(0);
         emit Active(startTime, AuctionState.Active);
     }
 
-    function finalizeAuction(uint256 _tokenId) external isPaused { // finalize auction
+    function finalizeAuction(uint256 _tokenId) external isPaused { // 경매 낙찰
         require(block.timestamp >= startTime + 2 days, "Not yet");
         address _nftAddress = listings[_tokenId].nftAddress;
         IERC721 nft = IERC721(_nftAddress);
@@ -163,9 +161,9 @@ contract NFTAuctionV1 is Initializable {
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid, minPrice"); // more than minimum
         require(msg.value > currentBid, "Can't bid, 123"); // msg.value를 여러 입찰액을 포함해서 보냄
 
-        totalBalance[msg.sender] += msg.value; // msg.value를 하면 멀티콜로 bid 했을 때 합산된 입찰액이 계속 더해짐
+        totalBalance[msg.sender] += msg.value; // 잘못된 msg.value 사용으로 인한 취약점, msg.value를 하면 멀티콜로 bid 했을 때 합산된 입찰액이 계속 더해짐
 
-        if (isMulticallExecution) { // 멀티콜에 의한 호출일 경우
+        if (isMulticallExecution) { // 멀티콜에 의한 호출일 경우, bid한 최소 최대 금액을 각각 저장. 추후에 최소값부터 비교 후 최대값과 비교하여 경매 참여 시 편의성 ㅔㅈ공
             playersBid[msg.sender].push(_amount); 
             for (uint8 i = 0; i < playersBid[msg.sender].length; i++) {
                 console.log("playersBid:" , playersBid[msg.sender][i]);
@@ -219,9 +217,9 @@ contract NFTAuctionV1 is Initializable {
         require(success, "withdraw failed");
     }
 
-    function multicall(bytes[] calldata _calldata) external payable isPaused { // 한 사용자가 여러 입찰액을 걸어놓는다.
+    function multicall(bytes[] calldata _calldata) external payable isPaused { // 멀티콜 패턴 구현 완료.
         isMulticallExecution = true; // multicall 실행 중 표시
-        for (uint256 i = 0; i < _calldata.length; i++) {                // 걸어놓은 입찰액 중 가장 작은 금액이 낙찰된다.
+        for (uint256 i = 0; i < _calldata.length; i++) {             
             (bool success, ) = address(this).delegatecall(_calldata[i]);
             require(success, "Delegatecall failed");
         }
