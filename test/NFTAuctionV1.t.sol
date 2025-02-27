@@ -106,12 +106,12 @@ contract NFTAuctionTest is Test {
         bytes[] memory _calldata = new bytes[](2);
 
         _calldata[0] = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 0.1 ether);
-        _calldata[1] = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 1 ether);
+        _calldata[1] = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 2 ether);
 
         bytes memory _data;
         _data = abi.encodeWithSignature("multicall(bytes[])", _calldata);
         vm.prank(bidder);
-        (bool result1, ) = address(auctionProxy).call{value: 1.1 ether}(_data);
+        (bool result1, ) = address(auctionProxy).call{value: 2.1 ether}(_data);
         require(result1, "failed ");
 
         vm.prank(bidder);
