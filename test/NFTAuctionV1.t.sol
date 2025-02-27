@@ -45,8 +45,17 @@ contract NFTAuctionTest is Test {
 
     }
 
-    function testSetup() public {
+    function testPause() public {
+        bytes memory _data;
+        vm.prank(address(this));
+        _data = abi.encodeWithSignature("pause()");
+        (bool result1, ) = address(auctionProxy).call(_data);
 
+        vm.prank(seller);
+        _data = abi.encodeWithSignature("withdraw(uint256)", 0.1 ether);
+
+        vm.expectRevert();
+        (bool result2, ) = address(auctionProxy).call(_data);
     }
 
     function testCreateAuction() public {
