@@ -2,12 +2,11 @@
 pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC20.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "forge-std/console.sol";
 
 
-contract NFTAuctionV1 is Initializable, ERC721, ERC20 {
+contract NFTAuctionV1 is Initializable {
 
     enum AuctionState {Created, Active, Ended} // Auction State
 
@@ -64,7 +63,7 @@ contract NFTAuctionV1 is Initializable, ERC721, ERC20 {
 
     mapping(uint256 => Auction) public listings;
     mapping(address => uint256) public playerBid;
-    mapping(address => uint256) public balances; // can pay ERC20
+    mapping(address => bool) public isBidder;
 
     address[] public bidders;
     uint256 public listingFee;
@@ -97,7 +96,10 @@ contract NFTAuctionV1 is Initializable, ERC721, ERC20 {
         isStop = false;
         listingFee = 0.001 ether;
         admin = msg.sender;
-        paymentToken = IERC20(_paymentToken); // ERC20 토큰 주소 설정
+    }
+
+    function getPlayerBid(address _player) external view returns (uint256){
+        return playerBid[_player];
     }
 
     function createAuction(
@@ -129,7 +131,7 @@ contract NFTAuctionV1 is Initializable, ERC721, ERC20 {
         address seller
         ) external checkApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
         startTime = block.timestamp;
-        bidders = []; // reset players
+        delete bidders; // reset players
         currentBid = 0; // reset currentBid
         highestBidder = address(0);
         emit Active(startTime, AuctionState.Active);
@@ -139,66 +141,45 @@ contract NFTAuctionV1 is Initializable, ERC721, ERC20 {
         require(block.timestamp >= startTime + 2 days, "Not yet");
         
         uint256 tmpBalance;
+        address _nftAddress = listings[_tokenId].nftAddress;
+        IERC721 nft = IERC721(_nftAddress);
+        // nft.transferFrom(address(this), msg.sender, tokenId); NFT 전송
 
-        for (uint16 i = 0; i < bidders.length; i++) {
-            if (currentBid == playerBid[bidders[i]]) { // check winner
-                highestBidder = bidders[i];
-                address _nftAddress = listings[_tokenId].nftAddress;
-                IERC721 nft = IERC721(_nftAddress);
-                // nft.transferFrom(address(this), msg.sender, tokenId);
-            } else {
-                tmpBalance = playerBid[bidders[i]];
-                (bool success, ) = bidders[i].call{value: tmpBalance}(""); // send ether
-                require(success, "Failed send to player");
-            }
-        }
         emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
     }
 
-    function bid(uint256 _tokenId, bool useERC20) external payable isPaused { // can bid
+    function bid(uint256 _tokenId) external payable isPaused { // can bid
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid"); // more than minimum
         require(msg.value > currentBid, "Can't bid");
 
-        if (playerBid[msg.sender] == 0) { 
-            bidders.push(msg.sender);   // first bid, save player
+        if (!isBidder[msg.sender]) { 
+            isBidder[msg.sender] = true;   // save bidders length
         }
-        if (!useERC20) {
-            playerBid[msg.sender] += msg.value;
-        } else{
-            balances[msg.sender] += msg.value;
+
+        playerBid[msg.sender] += msg.value;
+
+        if (playerBid[msg.sender] > currentBid) {
+            currentBid = playerBid[msg.sender];
+            highestBidder = msg.sender;
         }
-        currentBid = msg.value;
+
     }
 
-    function withdraw(uint256 amount, bool useERC20) external payable isPaused {
+    function withdraw(uint256 amount) external payable isPaused {
         require(playerBid[msg.sender] >= amount, "Insufficient amount");
 
-        address tmp;
+        playerBid[msg.sender] -= amount;
+        (bool success, ) = address(msg.sender).call{value: amount}("");
+        require(success, "withdraw failed!");
 
-        if (!useERC20) {
-            playerBid[msg.sender] -= amount;
-            (bool success, ) = address(msg.sender).call{value: amount}("");
-            require(success, "withdraw failed!");
-        } else {
-
-        }
-        
         if (playerBid[msg.sender] == 0) {
-            for (uint16 i = 0; i < bidders.length; i++) { // delete player
-                if (bidders[i] == msg.sender) {
-                    tmp = bidders[bidders.length - 1];
-                    bidders[i] = tmp;
-                    bidders[bidders.length - 1] = bidders[i];
-                    bidders.pop();
-                    break;
-                }
-            }
+            isBidder[msg.sender] = false;
         }
     }
 
-    function multicall(bytes[] calldata _calldata) external payable isPaused {
-        for (uint256 i = 0; i < _calldata.length; i++) {
-            (bool success, ) = address(this).delegatecall(_calldata[i]);
+    function multicall(bytes[] calldata _calldata) external payable isPaused { // 한 사용자가 여러 입찰액을 걸어놓는다.
+        for (uint256 i = 0; i < _calldata.length; i++) {                // 걸어놓은 입찰액 중 가장 작은 금액이 낙찰된다.
+            (bool success, ) = address(this).delegatecall(abi.encodeWithSignature("bid(uint256)", tokenId));
             require(success, "Delegatecall failed");
         }
     }
