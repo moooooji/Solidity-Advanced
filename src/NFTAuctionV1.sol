@@ -62,9 +62,10 @@ contract NFTAuctionV1 is Initializable {
     }
 
     mapping(uint256 => Auction) public listings;
-    mapping(address => uint256) public playerBid;
-    mapping(address => bool) public isBidder;
-    mapping(address => uint256[]) public bidHistory;
+    mapping(address => uint256[]) public playersBid;
+    mapping(address => uint256) public totalBalance;
+    mapping(address => uint256) public lowerBid;
+    mapping(address => uint256) public higherBid;
 
     address[] public bidders;
     uint256 public listingFee;
@@ -74,6 +75,7 @@ contract NFTAuctionV1 is Initializable {
     address public highestBidder;
     bool private isStop;
     address public admin;
+    
 
     modifier onlyAdmin() {
         require(admin == msg.sender, "Not admin");
@@ -99,8 +101,8 @@ contract NFTAuctionV1 is Initializable {
         admin = msg.sender;
     }
 
-    function getPlayerBid(address _player) external view returns (uint256){
-        return playerBid[_player];
+    function getPlayerBid(address _player) external view returns (uint256[] memory){
+        return playersBid[_player];
     }
 
     function createAuction(
@@ -109,8 +111,6 @@ contract NFTAuctionV1 is Initializable {
         uint256 _minPrice
     ) external payable nftOwner(_nftAddress, _tokenId, msg.sender) isPaused { // 경매 생성. 경매할 NFT가 경매 시작을 원하는 주소와 일치하는지 확인
         require(_minPrice > 0, "Minimum Price 0 is not allowed");
-        console.log("msg.value: ", msg.value);
-        console.log("listingFee: ", listingFee);
         require(msg.value == listingFee, "Not matched listing fee");
         
         tokenId = _tokenId;
@@ -140,16 +140,20 @@ contract NFTAuctionV1 is Initializable {
 
     function finalizeAuction(uint256 _tokenId) external isPaused { // finalize auction
         require(block.timestamp >= startTime + 2 days, "Not yet");
-        
-        uint256 tmpBalance;
         address _nftAddress = listings[_tokenId].nftAddress;
         IERC721 nft = IERC721(_nftAddress);
+        require(highestBidder != address(0), "No winner");
+
         if (msg.sender == highestBidder) {
-            for (uint16 i = 0; i < bidHistory[msg.sender].length; i++) {
-                if (bidHistory[msg.sender][i] == currentBid) {
-                    bidHistory[msg.sender][i] = 0;
+            for (uint16 i = 0; i < playersBid[msg.sender].length; i++) { // 입찰된 금액 빼고 반환
+                if (playersBid[msg.sender][i] == currentBid) {
+                    playersBid[msg.sender][i] = 0;
+                    totalBalance[msg.sender] -= playersBid[msg.sender][i];
                 }
-                (bool success, ) = msg.sender.call{value: bidHistory[msg.sender][i]}("");
+                totalBalance[msg.sender] -= playersBid[msg.sender][i];
+
+                require(address(this).balance >= playersBid[msg.sender][i], "not enough balance");
+                (bool success, ) = msg.sender.call{value: playersBid[msg.sender][i]}("");
                 require(success, "failed");
             }
             // nft.transferFrom(address(this), msg.sender, tokenId); NFT 전송
@@ -158,41 +162,71 @@ contract NFTAuctionV1 is Initializable {
         emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
     }
 
-    function bid(uint256 _tokenId) external payable isPaused { // can bid
+    function bid(uint256 _tokenId, uint256 _amount) external payable isPaused { // can bid
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid"); // more than minimum
-        require(msg.value > currentBid, "Can't bid");
+        require(msg.value > currentBid, "Can't bid"); // msg.value를 여러 입찰액을 포함해서 보냄
 
-        if (!isBidder[msg.sender]) { 
-            isBidder[msg.sender] = true;   // save bidders length
-        }
+        playersBid[msg.sender].push(_amount); 
+        totalBalance[msg.sender] += msg.value; // msg.value를 하면 멀티콜로 bid 했을 때 합산된 입찰액이 계속 더해짐
 
-        playerBid[msg.sender] += msg.value;
-        bidHistory[msg.sender].push(msg.value);
-
-        for (uint16 i = 0; i < bidHistory[msg.sender].length; i++) { // bidHistory 순회하며 가장 큰 입찰액 선정
-            if (bidHistory[msg.sender][i] > currentBid) {
-                currentBid = bidHistory[msg.sender][i];
-                highestBidder = msg.sender;
+        if (playersBid[msg.sender].length > 1) { // 최대 최소 금액이 있을 경우
+            if (playersBid[msg.sender][0] > playersBid[msg.sender][1] ) {
+                lowerBid[msg.sender] = playersBid[msg.sender][1];
+            } else {
+                higherBid[msg.sender] = playersBid[msg.sender][0];
             }
-        } 
-    }
-
-    function withdraw(uint256 amount) external payable isPaused {
-        require(playerBid[msg.sender] >= amount, "Insufficient amount");
-
-        playerBid[msg.sender] -= amount;
-        (bool success, ) = address(msg.sender).call{value: amount}("");
-        require(success, "withdraw failed!");
-
-        if (playerBid[msg.sender] == 0) {
-            isBidder[msg.sender] = false;
+            if (playersBid[msg.sender][0] > currentBid) { 
+                if (highestBidder != address(0) && (lowerBid[msg.sender] > lowerBid[highestBidder])) { // 기존 highest 입찰자 최대 금액 보다 쌀 경우
+                    if (lowerBid[msg.sender] > higherBid[highestBidder]) { // 기존 highest 입찰자 최대 금액 보다 비쌀 경우
+                        highestBidder = msg.sender; // 원래 highestBidder의 최대 입찰 금액보다 작은 경우
+                        currentBid = lowerBid[msg.sender];
+                    } else { // 기존 highest 최대 금액이 더 클 경우
+                        currentBid = higherBid[highestBidder];
+                    }
+                    
+                } else if (highestBidder != address(0) && (higherBid[msg.sender] > lowerBid[highestBidder])) { // 현재 입찰액의 최대 입찰액이 기존 highest 최소 금액보다 클 경우
+                    if (higherBid[msg.sender] > higherBid[highestBidder]) {
+                        highestBidder = msg.sender;
+                        currentBid = higher[msg.sender]; // 현재 입찰자의 최소 금액이 현재 highest의 최대 금액보다 작아 최대 금액끼리 비교
+                    } else {
+                        currentBid = higherBid[highestBidder];
+                    }
+                } else { // 초기 입찰자 일 경우 
+                    highestBidder = msg.sender;
+                    currentBid = lowerBid[msg.sender];
+                }
+            }
+        } else {
+            if (playersBid[msg.sender][0] > currentBid) { // 입찰액이 현재 금액보다 클 경우
+                if (highestBidder != address(0) && (playersBid[msg.sender][0] > lowerBid[highestBidder])) { // 현재 highest의 최대 금액과 현재 입찰액 비교
+                    if (playersBid[msg.sender][0] > higherBid[highestBidder]) {
+                        currentBid = playersBid[msg.sender][0];
+                        highestBidder = msg.sender;
+                    } else {
+                        currentBid = higherBid[highestBidder];
+                    }
+                } else { // 초기 입찰자 일 경우
+                    highestBidder = msg.sender;
+                    currentBid = playersBid[msg.sender][0];
+                }
+            }
         }
+    }        
+
+    function withdraw(uint256 _amount) external payable isPaused {
+        require(totalBalance[msg.sender] >= _amount, "can't withdraw");
+
+        totalBalance[msg.sender] -= _amount;
+        (bool success, ) = address(msg.sender).call{value: _amount}("");
+        require(success, "withdraw failed");
     }
 
     function multicall(bytes[] calldata _calldata) external payable isPaused { // 한 사용자가 여러 입찰액을 걸어놓는다.
         for (uint256 i = 0; i < _calldata.length; i++) {                // 걸어놓은 입찰액 중 가장 작은 금액이 낙찰된다.
-            (bool success, ) = address(this).delegatecall(abi.encodeWithSignature("bid(uint256)", tokenId));
+            (bool success, ) = address(this).delegatecall(_calldata[i]);
             require(success, "Delegatecall failed");
         }
     }
+
+    receive() external payable {}
 }
