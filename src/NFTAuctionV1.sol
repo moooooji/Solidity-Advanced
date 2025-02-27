@@ -208,7 +208,7 @@ contract NFTAuctionV1 is Initializable {
 
     function withdraw(uint256 _amount) external payable isPaused {
         require(totalBalance[msg.sender] >= _amount, "can't withdraw"); // CEI 패턴 및 Pull over Push 패턴 구현 완료
-
+        
         totalBalance[msg.sender] -= _amount;
         (bool success, ) = address(msg.sender).call{value: _amount}("");
         require(success, "withdraw failed");
