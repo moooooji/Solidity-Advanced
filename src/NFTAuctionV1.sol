@@ -148,8 +148,6 @@ contract NFTAuctionV1 is Initializable {
         if (msg.sender == highestBidder) {
             require(address(this).balance >= currentBid, "not enough balance");
             totalBalance[msg.sender] -= currentBid;
-            (bool success, ) = msg.sender.call{value: currentBid}("");
-            require(success, "failed");
         }
             // nft.transferFrom(address(this), msg.sender, tokenId); NFT 전송
         emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
