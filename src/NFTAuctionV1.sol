@@ -4,7 +4,7 @@ pragma solidity ^0.8.22;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "forge-std/console.sol";
-
+import "./AuctionToken.sol";
 
 contract NFTAuctionV1 is Initializable {
 
@@ -50,19 +50,7 @@ contract NFTAuctionV1 is Initializable {
         _;
     }
 
-    modifier checkApprove( 
-        address _nftAddress, 
-        uint256 _tokenId,
-        address seller
-        ) {
-        IERC721 nft = IERC721(_nftAddress);
-        require(nft.getApproved(_tokenId) == address(0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f), "Not approved"); // 테스트를 위해 테스트에서 생성한 auction 주소 사용
-        // require(nft.getApproved(_tokenId) == address(this), "Not approved"); 실제 배포 시
-        _;
-    }
-
     mapping(uint256 => Auction) public listings;
-    
     mapping(address => uint256) public totalBalance;
     mapping(address => uint256) public lowerBid;
     mapping(address => uint256) public higherBid;
@@ -77,7 +65,24 @@ contract NFTAuctionV1 is Initializable {
     bool private isStop;
     address public admin;
     bool public isMulticallExecution;
-    
+
+    AuctionToken UP;
+
+    modifier checkNFTApprove( 
+        address _nftAddress, 
+        uint256 _tokenId,
+        address seller
+        ) {
+        IERC721 nft = IERC721(_nftAddress);
+        require(nft.getApproved(_tokenId) == address(0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f), "Not approved"); // 테스트를 위해 테스트에서 생성한 auction 주소 사용
+        // require(nft.getApproved(_tokenId) == address(this), "Not approved"); 실제 배포 시
+        _;
+    }
+
+    modifier checkERC20Approve(address owner, address spender, uint256 value) {
+        require(UP.allowance(owner, spender) > value, "Not Approved");
+        _;
+    }
 
     modifier onlyAdmin() {
         require(admin == msg.sender, "Not admin");
@@ -101,6 +106,7 @@ contract NFTAuctionV1 is Initializable {
         isStop = false;
         listingFee = 0.001 ether;
         admin = msg.sender;
+        UP = new AuctionToken(10000000);
     }
 
     function getBalance(address _player) external view returns (uint256){
@@ -132,7 +138,7 @@ contract NFTAuctionV1 is Initializable {
         address _nftAddress,
         uint256 _tokenId,
         address seller
-        ) external checkApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
+        ) external checkNFTApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
         startTime = block.timestamp;
         currentBid = 0; // reset currentBid
         highestBidder = address(0);
@@ -154,11 +160,18 @@ contract NFTAuctionV1 is Initializable {
 
     }
 
-    function bid(uint256 _tokenId, uint256 _amount) external payable isPaused { // can bid
+    function bid(uint256 _tokenId, uint256 _amount, bool isERC) external payable isPaused { // can bid
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid, minPrice"); // more than minimum
         require(msg.value > currentBid, "Can't bid, 123"); // msg.value를 여러 입찰액을 포함해서 보냄
+        require(UP.allowance(msg.sender, address(this)) > _amount, "Not Approved ERC20");
 
-        totalBalance[msg.sender] += msg.value; // 잘못된 msg.value 사용으로 인한 취약점, msg.value를 하면 멀티콜로 bid 했을 때 합산된 입찰액이 계속 더해짐
+        if (!isERC) {
+            totalBalance[msg.sender] += msg.value; // 잘못된 msg.value 사용으로 인한 취약점, msg.value를 하면 멀티콜로 bid 했을 때 합산된 입찰액이 계속 더해짐
+        } else {
+            UP.transferFrom(msg.sender, address(this), _amount);
+            totalBalance[msg.sender] += _amount;
+        }
+
 
         if (isMulticallExecution) { // 멀티콜에 의한 호출일 경우, bid한 최소 최대 금액을 각각 저장. 추후에 최소값부터 비교 후 최대값과 비교하여 경매 참여 시 편의성 ㅔㅈ공
             playersBid[msg.sender].push(_amount); 
