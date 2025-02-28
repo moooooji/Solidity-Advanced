@@ -98,6 +98,12 @@ contract NFTAuctionTest is Test {
         _data = abi.encodeWithSignature("withdraw(uint256)", 1 ether);
         (bool result2, ) = address(auctionProxy).call(_data);
         require(result2, "failed");
+
+        vm.prank(bidder);
+        _data = abi.encodeWithSignature("withdraw(uint256)", 2 ether);
+        vm.expectRevert();
+        (bool result3, ) = address(auctionProxy).call(_data);
+        require(result3, "failed");
     }
 
     function testFinalizeAuction() public {
