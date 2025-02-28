@@ -65,6 +65,8 @@ contract NFTAuctionV1 is Initializable {
     bool private isStop;
     address public admin;
     bool public isMulticallExecution;
+    uint256 totalListingFee;
+    uint256 profitPerToken;
 
     AuctionToken UP;
 
@@ -113,6 +115,20 @@ contract NFTAuctionV1 is Initializable {
         return totalBalance[_player];
     }
 
+    function distributeProfits() external onlyAdmin { // 서비스 이용자들에게 수수료에 대한 토큰 부과
+        uint256 totalSupply = UP.totalSupply();
+        profitPerToken = totalListingFee / totalSupply;
+        totalListingFee = 0;
+    }
+
+    function claimProfits() external {
+        uint256 balance = UP.balanceOf(msg.sender);
+        uint256 profit = (balance * profitPerToken) / 10**18; // 단위 조정
+        require(profit > 0, "No profit");
+        (bool success, ) = msg.sender.call{value: profit}("");
+        require(success, "Transfer failed");
+    }
+
     function createAuction(
         address _nftAddress,
         uint256 _tokenId,
@@ -120,7 +136,8 @@ contract NFTAuctionV1 is Initializable {
     ) external payable nftOwner(_nftAddress, _tokenId, msg.sender) isPaused { // 경매 생성. 경매할 NFT가 경매 시작을 원하는 주소와 일치하는지 확인
         require(_minPrice > 0, "Minimum Price 0 is not allowed");
         require(msg.value == listingFee, "Not matched listing fee");
-        
+
+        totalListingFee += msg.value; // 경매 시작에 대한 수수료 축적
         tokenId = _tokenId;
 
         listings[_tokenId] = Auction({
@@ -142,6 +159,7 @@ contract NFTAuctionV1 is Initializable {
         startTime = block.timestamp;
         currentBid = 0; // reset currentBid
         highestBidder = address(0);
+
         UP.transfer(msg.sender, 1*(10**18)); // 경매를 시작한 사람에게 1UP 토큰을 지급
         emit Active(startTime, AuctionState.Active);
     }
