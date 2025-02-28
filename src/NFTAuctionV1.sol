@@ -225,3 +225,6 @@ contract NFTAuctionV1 is Initializable {
 
     receive() external payable {}
 }
+
+// auction address:  0xD4b47D9c1337f7293DCaFD360364c86dCA262728
+//   proxy address:  0xaa37835Ed74d4f5B34f94040190B62F674A2129e

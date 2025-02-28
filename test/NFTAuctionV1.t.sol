@@ -48,90 +48,90 @@ contract NFTAuctionTest is Test {
 
     }
 
-    // function testPause() public {
-    //     bytes memory _data;
-    //     vm.prank(address(this));
-    //     _data = abi.encodeWithSignature("pause()");
-    //     (bool result1, ) = address(auctionProxy).call(_data);
+    function testPause() public {
+        bytes memory _data;
+        vm.prank(address(this));
+        _data = abi.encodeWithSignature("pause()");
+        (bool result1, ) = address(auctionProxy).call(_data);
 
-    //     vm.prank(seller);
-    //     _data = abi.encodeWithSignature("withdraw(uint256)", 0.1 ether);
+        vm.prank(seller);
+        _data = abi.encodeWithSignature("withdraw(uint256)", 0.1 ether);
 
-    //     vm.expectRevert();
-    //     (bool result2, ) = address(auctionProxy).call(_data);
-    // }
+        vm.expectRevert();
+        (bool result2, ) = address(auctionProxy).call(_data);
+    }
 
-    // function testCreateAuction() public {
-    //     bytes memory _data;
-    //     vm.prank(seller);
-    //     _data = abi.encodeWithSignature("createAuction(address,uint256,uint256)", address(nft), tokenId, 0.1 ether);
-    //     (bool result, ) = address(auctionProxy).call{value: 0.001 ether}(_data);
-    //     require(result, "failed");
-    // }
+    function testCreateAuction() public {
+        bytes memory _data;
+        vm.prank(seller);
+        _data = abi.encodeWithSignature("createAuction(address,uint256,uint256)", address(nft), tokenId, 0.1 ether);
+        (bool result, ) = address(auctionProxy).call{value: 0.001 ether}(_data);
+        require(result, "failed");
+    }
 
-    // function testStartAuction() public {
-    //     vm.prank(seller);
-    //     nft.approve(address(auction), tokenId);
+    function testStartAuction() public {
+        vm.prank(seller);
+        nft.approve(address(auction), tokenId);
 
-    //     vm.prank(seller);
-    //     bytes memory _data;
-    //     _data = abi.encodeWithSignature("startAuction(address,uint256,address)", address(nft), tokenId, seller);
-    //     (bool result, ) = address(auctionProxy).call(_data);
-    //     require(result, "failed");
-    // }
-    // function testBid() public {
-    //     vm.prank(bidder);
-    //     bytes memory _data;
-    //     _data = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 1 ether);
-    //     (bool result, ) = address(auctionProxy).call{value: 1 ether}(_data);
-    //     require(result, "failed");
-    // }
+        vm.prank(seller);
+        bytes memory _data;
+        _data = abi.encodeWithSignature("startAuction(address,uint256,address)", address(nft), tokenId, seller);
+        (bool result, ) = address(auctionProxy).call(_data);
+        require(result, "failed");
+    }
+    function testBid() public {
+        vm.prank(bidder);
+        bytes memory _data;
+        _data = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 1 ether);
+        (bool result, ) = address(auctionProxy).call{value: 1 ether}(_data);
+        require(result, "failed");
+    }
 
-    // function testWithdraw() public {
-    //     vm.prank(bidder);
-    //     bytes memory _data;
-    //     _data = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 1 ether);
-    //     (bool result1, ) = address(auctionProxy).call{value: 1 ether}(_data);
-    //     require(result1, "failed");
+    function testWithdraw() public {
+        vm.prank(bidder);
+        bytes memory _data;
+        _data = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 1 ether);
+        (bool result1, ) = address(auctionProxy).call{value: 1 ether}(_data);
+        require(result1, "failed");
 
-    //     vm.prank(bidder);
-    //     _data = abi.encodeWithSignature("withdraw(uint256)", 1 ether);
-    //     (bool result2, ) = address(auctionProxy).call(_data);
-    //     require(result2, "failed");
-    // }
+        vm.prank(bidder);
+        _data = abi.encodeWithSignature("withdraw(uint256)", 1 ether);
+        (bool result2, ) = address(auctionProxy).call(_data);
+        require(result2, "failed");
+    }
 
-    // function testFinalizeAuction() public {
-    //     vm.prank(bidder);
-    //     bytes memory _data;
-    //     _data = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 1 ether);
-    //     (bool result1, ) = address(auctionProxy).call{value: 1 ether}(_data);
-    //     require(result1, "failed");
+    function testFinalizeAuction() public {
+        vm.prank(bidder);
+        bytes memory _data;
+        _data = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 1 ether);
+        (bool result1, ) = address(auctionProxy).call{value: 1 ether}(_data);
+        require(result1, "failed");
 
-    //     skip(2 days);
-    //     vm.prank(bidder);
-    //     _data = abi.encodeWithSignature("finalizeAuction(uint256)", tokenId);
-    //     (bool result2, ) = address(auctionProxy).call(_data);
-    //     require(result2, "failed");
-    // }
+        skip(2 days);
+        vm.prank(bidder);
+        _data = abi.encodeWithSignature("finalizeAuction(uint256)", tokenId);
+        (bool result2, ) = address(auctionProxy).call(_data);
+        require(result2, "failed");
+    }
     
-    // function testMulticall() public {
-    //     bytes[] memory _calldata = new bytes[](2);
+    function testMulticall() public {
+        bytes[] memory _calldata = new bytes[](2);
 
-    //     _calldata[0] = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 0.1 ether);
-    //     _calldata[1] = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 2 ether);
+        _calldata[0] = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 0.1 ether);
+        _calldata[1] = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 2 ether);
 
-    //     bytes memory _data;
-    //     _data = abi.encodeWithSignature("multicall(bytes[])", _calldata);
-    //     vm.prank(bidder);
-    //     (bool result1, ) = address(auctionProxy).call{value: 2.1 ether}(_data);
-    //     require(result1, "failed ");
+        bytes memory _data;
+        _data = abi.encodeWithSignature("multicall(bytes[])", _calldata);
+        vm.prank(bidder);
+        (bool result1, ) = address(auctionProxy).call{value: 2.1 ether}(_data);
+        require(result1, "failed ");
 
-    //     vm.prank(bidder);
-    //     skip(2 days);
-    //     _data = abi.encodeWithSignature("finalizeAuction(uint256)", tokenId);
-    //     (bool result2, ) = address(auctionProxy).call(_data);
-    //     require(result2, "failed ");
-    // }
+        vm.prank(bidder);
+        skip(2 days);
+        _data = abi.encodeWithSignature("finalizeAuction(uint256)", tokenId);
+        (bool result2, ) = address(auctionProxy).call(_data);
+        require(result2, "failed ");
+    }
 
     function testExploit() public {
         bytes[] memory _calldata = new bytes[](2);
@@ -154,9 +154,15 @@ contract NFTAuctionTest is Test {
         require(result2, "failed ");
 
         vm.prank(bidder);
-        _data = abi.encodeWithSignature("withdraw(uint256)", 6 ether);
+        _data = abi.encodeWithSignature("withdraw(uint256)", 7 ether);
+        vm.expectRevert();
         (bool result3, ) = address(auctionProxy).call(_data);
         require(result3, "failed ");
+
+        vm.prank(bidder);
+        _data = abi.encodeWithSignature("withdraw(uint256)", 6 ether);
+        (bool result4, ) = address(auctionProxy).call(_data);
+        require(result4, "failed ");
     }
     
 }

@@ -34,10 +34,7 @@ contract NFTAuctionProxy is ERC1967Proxy {
     address public admin;
     bool public isMulticallExecution;
 
-    constructor(address _implementationAddr, bytes memory _data) ERC1967Proxy(_implementationAddr, _data) {
-        console.log("parameter imple: ", _implementationAddr);
-        console.log("setted imple: ",_implementation());
-    }
+    constructor(address _implementationAddr, bytes memory _data) ERC1967Proxy(_implementationAddr, _data) {}
 
     function updateImple(address _newImpl, bytes memory _data) external {
         _upgradeToAndCall(_newImpl, _data);
