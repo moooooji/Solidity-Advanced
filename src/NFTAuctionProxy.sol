@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import "./ERC1967Proxy.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 import "forge-std/console.sol";
+import "./AuctionToken.sol";
 
 contract NFTAuctionProxy is ERC1967Proxy {
 

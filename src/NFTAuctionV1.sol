@@ -82,6 +82,7 @@ contract NFTAuctionV1 is Initializable {
 
     modifier onlyEnded(uint256 _tokenId) {
         require(block.timestamp >= startTime + 2 days, "Auction not in Ended state");
+        listings[_tokenId].state = AuctionState.Ended;
         _;
     }
 
@@ -189,8 +190,7 @@ contract NFTAuctionV1 is Initializable {
             // nft.transferFrom(address(this), msg.sender, tokenId); NFT 전송
             _seller.call{value : currentBid}("");
         }
-            
-        listings[_tokenId].state = AuctionState.Ended;
+        
         emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
 
     }

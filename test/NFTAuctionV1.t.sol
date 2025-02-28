@@ -48,6 +48,9 @@ contract NFTAuctionTest is Test {
     }
 
     function testProxy() public {
+        testCreateAuction();
+        testStartAuction();
+
         console.log("before bid, auctionProxy state variable: ", auctionProxy.currentBid());
         vm.prank(bidder);
         bytes memory _data;
@@ -117,6 +120,9 @@ contract NFTAuctionTest is Test {
     }
 
     function testBid() public {
+        testCreateAuction();
+        testStartAuction();
+
         vm.prank(bidder);
         bytes memory _data;
         _data = abi.encodeWithSignature("bid(uint256,uint256,bool)", tokenId, 1 ether, false);
@@ -125,6 +131,9 @@ contract NFTAuctionTest is Test {
     }
 
     function testWithdraw() public {
+        testCreateAuction();
+        testStartAuction();
+
         vm.prank(bidder);
         bytes memory _data;
         _data = abi.encodeWithSignature("bid(uint256,uint256,bool)", tokenId, 1 ether, false);
@@ -144,6 +153,9 @@ contract NFTAuctionTest is Test {
     }
 
     function testFinalizeAuction() public {
+        testCreateAuction();
+        testStartAuction();
+
         vm.prank(bidder);
         bytes memory _data;
         _data = abi.encodeWithSignature("bid(uint256,uint256,bool)", tokenId, 1 ether, false);
@@ -158,6 +170,9 @@ contract NFTAuctionTest is Test {
     }
     
     function testMulticall() public {
+        testCreateAuction();
+        testStartAuction();
+        
         bytes[] memory _calldata = new bytes[](2);
 
         _calldata[0] = abi.encodeWithSignature("bid(uint256,uint256,bool)", tokenId, 0.1 ether, false);
@@ -177,6 +192,9 @@ contract NFTAuctionTest is Test {
     }
 
     function testExploit() public {
+        testCreateAuction();
+        testStartAuction();
+
         bytes[] memory _calldata = new bytes[](2);
 
         _calldata[0] = abi.encodeWithSignature("bid(uint256,uint256,bool)", tokenId, 1 ether, false);
