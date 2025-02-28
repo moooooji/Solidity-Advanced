@@ -33,7 +33,6 @@ contract NFTAuctionTest is Test {
         nft = new TestNFT();
 
         bytes memory _data = abi.encodeWithSignature("initialize()");
-        console.logBytes(_data);
 
         auctionProxy = new NFTAuctionProxy(address(auction), _data);
 
@@ -46,6 +45,17 @@ contract NFTAuctionTest is Test {
         deal(bidder, 100 ether);
         deal(bidder2, 100 ether);
 
+    }
+
+    function testProxy() public {
+        console.log("before bid, auctionProxy state variable: ", auctionProxy.currentBid());
+        vm.prank(bidder);
+        bytes memory _data;
+        _data = abi.encodeWithSignature("bid(uint256,uint256)", tokenId, 1 ether);
+        (bool result, ) = address(auctionProxy).call{value: 1 ether}(_data);
+        require(result, "failed");
+
+        console.log("after bid, auctionProxy state variable: ", auctionProxy.currentBid());
     }
 
     function testPause() public {
