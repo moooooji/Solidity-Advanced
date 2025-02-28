@@ -81,11 +81,6 @@ contract NFTAuctionV1 is Initializable {
         _;
     }
 
-    modifier checkERC20Approve(address owner, address spender, uint256 value) {
-        require(UP.allowance(owner, spender) > value, "Not Approved");
-        _;
-    }
-
     modifier onlyAdmin() {
         require(admin == msg.sender, "Not admin");
         _;
@@ -117,15 +112,15 @@ contract NFTAuctionV1 is Initializable {
 
     function distributeProfits() external onlyAdmin { // 서비스 이용자들에게 수수료에 대한 토큰 부과
         uint256 totalSupply = UP.totalSupply();
-        profitPerToken = totalListingFee / totalSupply;
+        profitPerToken = (totalListingFee / 100) / totalSupply; // 토큰 1개당 받을 수익
         totalListingFee = 0;
     }
 
-    function claimProfits() external {
+    function claimProfits() external { // 사용자들이 직접 호출
         uint256 balance = UP.balanceOf(msg.sender);
         uint256 profit = (balance * profitPerToken) / 10**18; // 단위 조정
         require(profit > 0, "No profit");
-        (bool success, ) = msg.sender.call{value: profit}("");
+        (bool success, ) = msg.sender.call{value: profit}(""); 
         require(success, "Transfer failed");
     }
 
@@ -167,14 +162,18 @@ contract NFTAuctionV1 is Initializable {
     function finalizeAuction(uint256 _tokenId) external isPaused { // 경매 낙찰
         require(block.timestamp >= startTime + 2 days, "Not yet");
         address _nftAddress = listings[_tokenId].nftAddress;
+        address _seller = listings[_tokenId].seller;
         IERC721 nft = IERC721(_nftAddress);
         require(highestBidder != address(0), "No winner");
 
         if (msg.sender == highestBidder) {
             require(address(this).balance >= currentBid, "not enough balance");
             totalBalance[msg.sender] -= currentBid;
-        }
             // nft.transferFrom(address(this), msg.sender, tokenId); NFT 전송
+            _seller.call{value : currentBid}("");
+        }
+            
+            
         emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
 
     }
@@ -182,11 +181,11 @@ contract NFTAuctionV1 is Initializable {
     function bid(uint256 _tokenId, uint256 _amount, bool isERC) external payable isPaused { // can bid
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid, minPrice"); // more than minimum
         require(msg.value > currentBid, "Can't bid, 123"); // msg.value를 여러 입찰액을 포함해서 보냄
-        require(UP.allowance(msg.sender, address(this)) > _amount, "Not Approved ERC20");
 
         if (!isERC) {
             totalBalance[msg.sender] += msg.value; // 잘못된 msg.value 사용으로 인한 취약점, msg.value를 하면 멀티콜로 bid 했을 때 합산된 입찰액이 계속 더해짐
         } else {
+            require(UP.allowance(msg.sender, address(this)) > _amount, "Not Approved ERC20");
             UP.transferFrom(msg.sender, address(this), _amount);
             totalBalance[msg.sender] += _amount;
         }
@@ -260,6 +259,3 @@ contract NFTAuctionV1 is Initializable {
 
     receive() external payable {}
 }
-
-// auction address:  0xD4b47D9c1337f7293DCaFD360364c86dCA262728
-//   proxy address:  0xaa37835Ed74d4f5B34f94040190B62F674A2129e
