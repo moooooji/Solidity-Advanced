@@ -106,11 +106,6 @@ contract NFTAuctionTest is Test {
         (bool result1, ) = address(auctionProxy).call(_data);
         require(result1, "failed");
 
-        // vm.prank(bidder);
-        // _data = abi.encodeWithSignature("bid(uint256,uint256,bool)", tokenId, 1 ether, false);
-        // (bool result2, ) = address(auctionProxy).call{value: 1 ether}(_data);
-        // require(result2, "failed");
-
         _data = abi.encodeWithSignature("distributeProfits()");
         (bool result3, ) = address(auctionProxy).call(_data);
         require(result3, "failed");

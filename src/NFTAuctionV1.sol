@@ -120,6 +120,7 @@ contract NFTAuctionV1 is Initializable {
         uint256 balance = UP.balanceOf(msg.sender);
         uint256 profit = (balance * profitPerToken) / 10**18; // 단위 조정
         require(profit > 0, "No profit");
+        console.log("Received profit: ", profit);
         (bool success, ) = msg.sender.call{value: profit}(""); 
         require(success, "Transfer failed");
     }
