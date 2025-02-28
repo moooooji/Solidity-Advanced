@@ -175,18 +175,18 @@ contract NFTAuctionTest is Test {
         _data = abi.encodeWithSignature("multicall(bytes[])", _calldata);
         vm.prank(bidder2);
         (bool result2, ) = address(auctionProxy).call{value: 6 ether}(_data);
-        require(result2, "failed ");
+        require(result2, "failed 1");
 
         vm.prank(bidder);
-        _data = abi.encodeWithSignature("withdraw(uint256)", 7 ether);
+        _data = abi.encodeWithSignature("withdraw(uint256,bool)", 7 ether, false);
         vm.expectRevert();
         (bool result3, ) = address(auctionProxy).call(_data);
-        require(result3, "failed ");
+        require(result3, "failed 2");
 
         vm.prank(bidder);
-        _data = abi.encodeWithSignature("withdraw(uint256)", 6 ether);
+        _data = abi.encodeWithSignature("withdraw(uint256,bool)", 6 ether, false);
         (bool result4, ) = address(auctionProxy).call(_data);
-        require(result4, "failed ");
+        require(result4, "failed 3");
     }
     
 }
