@@ -112,7 +112,7 @@ contract NFTAuctionV1 is Initializable {
 
     function distributeProfits() external onlyAdmin { // 서비스 이용자들에게 수수료에 대한 토큰 부과
         uint256 totalSupply = UP.totalSupply();
-        profitPerToken = (totalListingFee / 100) / totalSupply; // 토큰 1개당 받을 수익
+        profitPerToken = totalListingFee * (10**18) / totalSupply; // 토큰 1개당 받을 수익
         totalListingFee = 0;
     }
 
@@ -180,7 +180,7 @@ contract NFTAuctionV1 is Initializable {
 
     function bid(uint256 _tokenId, uint256 _amount, bool isERC) external payable isPaused { // can bid
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid, minPrice"); // more than minimum
-        require(msg.value > currentBid, "Can't bid, 123"); // msg.value를 여러 입찰액을 포함해서 보냄
+        require(msg.value > currentBid, "Can't bid");
 
         if (!isERC) {
             totalBalance[msg.sender] += msg.value; // 잘못된 msg.value 사용으로 인한 취약점, msg.value를 하면 멀티콜로 bid 했을 때 합산된 입찰액이 계속 더해짐
