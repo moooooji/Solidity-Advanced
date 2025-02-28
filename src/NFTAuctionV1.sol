@@ -106,7 +106,7 @@ contract NFTAuctionV1 is Initializable {
         isStop = false;
         listingFee = 0.001 ether;
         admin = msg.sender;
-        UP = new AuctionToken(10000000);
+        UP = new AuctionToken(100000); // 초기 발행량
     }
 
     function getBalance(address _player) external view returns (uint256){
@@ -142,6 +142,7 @@ contract NFTAuctionV1 is Initializable {
         startTime = block.timestamp;
         currentBid = 0; // reset currentBid
         highestBidder = address(0);
+        UP.transfer(msg.sender, 1*(10**18)); // 경매를 시작한 사람에게 1UP 토큰을 지급
         emit Active(startTime, AuctionState.Active);
     }
 
@@ -217,12 +218,17 @@ contract NFTAuctionV1 is Initializable {
         }
     }
 
-    function withdraw(uint256 _amount) external payable isPaused {
+    function withdraw(uint256 _amount, bool isERC) external payable isPaused {
         require(totalBalance[msg.sender] >= _amount, "can't withdraw"); // CEI 패턴 및 Pull over Push 패턴 구현 완료
         
         totalBalance[msg.sender] -= _amount;
-        (bool success, ) = address(msg.sender).call{value: _amount}("");
-        require(success, "withdraw failed");
+
+        if (!isERC) {
+            (bool success, ) = address(msg.sender).call{value: _amount}("");
+            require(success, "withdraw failed");
+        } else {
+            UP.transfer(msg.sender, _amount);
+        }
     }
 
     function multicall(bytes[] calldata _calldata) external payable isPaused { // 멀티콜 패턴 구현 완료.
