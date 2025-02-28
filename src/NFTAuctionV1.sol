@@ -70,6 +70,21 @@ contract NFTAuctionV1 is Initializable {
 
     AuctionToken UP;
 
+    modifier onlyCreated(uint256 _tokenId) {
+        require(listings[_tokenId].state == AuctionState.Created, "Auction not in Created state");
+        _;
+    }
+
+    modifier onlyActive(uint256 _tokenId) {
+        require(listings[_tokenId].state == AuctionState.Active, "Auction not in Active state");
+        _;
+    }
+
+    modifier onlyEnded(uint256 _tokenId) {
+        require(block.timestamp >= startTime + 2 days, "Auction not in Ended state");
+        _;
+    }
+
     modifier checkNFTApprove( 
         address _nftAddress, 
         uint256 _tokenId,
@@ -151,17 +166,18 @@ contract NFTAuctionV1 is Initializable {
         address _nftAddress,
         uint256 _tokenId,
         address seller
-        ) external checkNFTApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
+        ) external onlyCreated(_tokenId) checkNFTApprove(_nftAddress, _tokenId, seller) nftOwner(_nftAddress, _tokenId, msg.sender) isPaused {
         startTime = block.timestamp;
         currentBid = 0; // reset currentBid
         highestBidder = address(0);
+
+        listings[_tokenId].state = AuctionState.Active;
 
         UP.transfer(msg.sender, 1*(10**18)); // 경매를 시작한 사람에게 1UP 토큰을 지급
         emit Active(startTime, AuctionState.Active);
     }
 
-    function finalizeAuction(uint256 _tokenId) external isPaused { // 경매 낙찰
-        require(block.timestamp >= startTime + 2 days, "Not yet");
+    function finalizeAuction(uint256 _tokenId) external onlyEnded(_tokenId) isPaused { // 경매 낙찰
         address _nftAddress = listings[_tokenId].nftAddress;
         address _seller = listings[_tokenId].seller;
         IERC721 nft = IERC721(_nftAddress);
@@ -174,12 +190,12 @@ contract NFTAuctionV1 is Initializable {
             _seller.call{value : currentBid}("");
         }
             
-            
+        listings[_tokenId].state = AuctionState.Ended;
         emit Ended(highestBidder, _nftAddress, _tokenId, currentBid, AuctionState.Ended);
 
     }
 
-    function bid(uint256 _tokenId, uint256 _amount, bool isERC) external payable isPaused { // can bid
+    function bid(uint256 _tokenId, uint256 _amount, bool isERC) external payable onlyActive(_tokenId) isPaused { // can bid
         require(msg.value >= listings[_tokenId].minPrice, "Can't bid, minPrice"); // more than minimum
         require(msg.value > currentBid, "Can't bid");
 
@@ -190,7 +206,6 @@ contract NFTAuctionV1 is Initializable {
             UP.transferFrom(msg.sender, address(this), _amount);
             totalBalance[msg.sender] += _amount;
         }
-
 
         if (isMulticallExecution) { // 멀티콜에 의한 호출일 경우, bid한 최소 최대 금액을 각각 저장. 추후에 최소값부터 비교 후 최대값과 비교하여 경매 참여 시 편의성 ㅔㅈ공
             playersBid[msg.sender].push(_amount); 
